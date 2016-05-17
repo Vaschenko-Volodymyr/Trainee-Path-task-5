@@ -1,3 +1,12 @@
 <resources>
-    <string name="app_name">Trainee-path-Task-5</string>
+    <string name="app_name">Задание № 5</string>
+    <string name="load">Load</string>
+    <string name="ulr_text">Картинка из интернета\nurl: http://gospelgeeks.net/wp-content/uploads/2013/04/jesus-02.jpg</string>
+    <string name="url">http://gospelgeeks.net/wp-content/uploads/2013/04/jesus-02.jpg</string>
+
+    <string name="progress_message">Loading Image…</string>
+    <string name="loading_error">Image does not exist or Network error</string>
+
+    <string name="successful_text">Картинка уже загружена</string>
+
 </resources>
