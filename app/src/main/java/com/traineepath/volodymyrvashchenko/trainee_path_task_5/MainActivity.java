@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -16,10 +18,9 @@ public class MainActivity extends AppCompatActivity implements OnPostExecutable 
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private ImageView mLoadedImage;
-
     private Button mLoad;
     private ProgressDialog mProgress;
-
+    private CheckBox mLoadBigImage;
     private LoadImage mLoader;
 
     @Override
@@ -34,11 +35,27 @@ public class MainActivity extends AppCompatActivity implements OnPostExecutable 
         setLoadOnClickListener();
 
         mProgress = new ProgressDialog(this);
-        mLoader = new LoadImage(MainActivity.this, mProgress);
+        mLoadBigImage = (CheckBox) findViewById(R.id.load_big);
+        setLoadBigImageClickListener();
+
+        mLoader = new LoadImage(MainActivity.this,
+                mProgress,
+                mLoadedImage.getHeight(),
+                mLoadBigImage.getWidth());
+    }
+
+    private void setLoadBigImageClickListener() {
+        mLoadBigImage.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                mLoadedImage.setImageBitmap(null);
+            }
+        });
     }
 
     @Override
     protected void onResume() {
+        Log.v(TAG, "Method: onResume()");
         super.onResume();
         if (mProgress.isShowing()) {
             mProgress.show();
@@ -47,10 +64,19 @@ public class MainActivity extends AppCompatActivity implements OnPostExecutable 
 
     @Override
     protected void onPause() {
+        Log.v(TAG, "Method: onPause()");
         super.onPause();
         if (mProgress.isShowing()) {
             mProgress.dismiss();
         }
+        mLoader.cancel(true);
+        Log.v(TAG, "AsyncTask is canceled");
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.v(TAG, "Method: onDestroy()");
+        super.onDestroy();
     }
 
     private void setLoadOnClickListener() {
@@ -58,11 +84,19 @@ public class MainActivity extends AppCompatActivity implements OnPostExecutable 
         mLoad.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!mLoader.getStatus().equals(AsyncTask.Status.FINISHED)) {
-                    mLoader.execute(getResources().getString(R.string.url));
-                } else {
+                String url = mLoadBigImage.isChecked() ?
+                        getResources().getString(R.string.big_image_url) :
+                        getResources().getString(R.string.small_image_url);
+                try {
+                        if (!mLoader.getStatus().equals(AsyncTask.Status.FINISHED)) {
+                            Log.v(TAG, "Loading image was not finished, start loading..");
+                            mLoader.execute(url);
+                        } else {
+                            onLoadCompletedToast();
+                        }
+                } catch (NullPointerException e) {
                     Toast.makeText(MainActivity.this,
-                            getResources().getString(R.string.successful_text),
+                            getResources().getString(R.string.retry),
                             Toast.LENGTH_SHORT)
                             .show();
                 }
@@ -78,10 +112,26 @@ public class MainActivity extends AppCompatActivity implements OnPostExecutable 
             mProgress.dismiss();
         } else {
             mProgress.dismiss();
-            Toast.makeText(this,
-                    getResources().getString(R.string.loading_error),
-                    Toast.LENGTH_SHORT)
-                    .show();
+            if (mLoader.getLoadedState()) {
+                Toast.makeText(this,
+                        getResources().getString(R.string.too_big),
+                        Toast.LENGTH_SHORT)
+                        .show();
+            } else {
+                Toast.makeText(this,
+                        getResources().getString(R.string.loading_error),
+                        Toast.LENGTH_SHORT)
+                        .show();
+            }
+
         }
+    }
+
+    private void onLoadCompletedToast() {
+        Log.v(TAG, "Loading image was finished, don't need to load again");
+        Toast.makeText(MainActivity.this,
+                getResources().getString(R.string.successful_text),
+                Toast.LENGTH_SHORT)
+                .show();
     }
 }

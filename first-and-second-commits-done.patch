@@ -1,0 +1,316 @@
+Index: app/src/main/res/layout/activity_main.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/activity_main.xml	(date 1463488692000)
++++ app/src/main/res/layout/activity_main.xml	(revision )
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:tools="http://schemas.android.com/tools"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+@@ -8,28 +8,41 @@
+     android:paddingRight="@dimen/activity_horizontal_margin"
+     android:paddingTop="@dimen/activity_vertical_margin"
+     tools:context="com.traineepath.volodymyrvashchenko.trainee_path_task_5.MainActivity"
+-    android:orientation="vertical">
++    android:orientation="vertical"
++    android:layout_weight="10">
+ 
+     <TextView
+         android:layout_width="wrap_content"
+-        android:layout_height="wrap_content"
++        android:layout_height="0dp"
+         android:layout_gravity="center_horizontal|top"
+         android:text="@string/ulr_text"
+         android:gravity="center"
+-        android:padding="4dip"/>
++        android:padding="4dip"
++        android:layout_weight="1"/>
+ 
++    <CheckBox
++        android:id="@+id/load_big"
++        android:layout_width="wrap_content"
++        android:layout_height="0dp"
++        android:text="@string/load_big"
++        android:layout_weight="1"
++        android:layout_gravity="center"/>
++
++    <ImageView
++        android:id="@+id/loaded_image"
++        android:layout_width="match_parent"
++        android:layout_height="0dp"
++        android:layout_gravity="center"
++        android:layout_weight="7"/>
++
+     <Button
+         android:id="@+id/load"
+         android:layout_width="wrap_content"
+-        android:layout_height="wrap_content"
++        android:layout_height="0dp"
+         android:text="@string/load"
+-        android:layout_gravity="center_horizontal|bottom"
++        android:layout_gravity="center_horizontal"
+         android:background="@drawable/button_selector"
+-        android:textColor="@color/white"/>
++        android:textColor="@color/white"
++        android:layout_weight="1"/>
+ 
+-    <ImageView
+-        android:id="@+id/loaded_image"
+-        android:layout_width="match_parent"
+-        android:layout_height="match_parent"
+-        android:layout_gravity="center" />
+-</FrameLayout>
++</LinearLayout>
+Index: app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/MainActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/MainActivity.java	(date 1463488692000)
++++ app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/MainActivity.java	(revision )
+@@ -8,19 +8,23 @@
+ import android.util.Log;
+ import android.view.View;
+ import android.widget.Button;
++import android.widget.CheckBox;
++import android.widget.CompoundButton;
+ import android.widget.ImageView;
+ import android.widget.Toast;
+ 
++import java.lang.ref.WeakReference;
++
+ public class MainActivity extends AppCompatActivity implements OnPostExecutable {
+ 
+     private static final String TAG = MainActivity.class.getSimpleName();
+ 
+     private ImageView mLoadedImage;
+-
+     private Button mLoad;
+     private ProgressDialog mProgress;
++    private CheckBox mLoadBigImage;
+ 
+-    private LoadImage mLoader;
++    private WeakReference<LoadImage> mSoftLoader;
+ 
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+@@ -34,11 +38,27 @@
+         setLoadOnClickListener();
+ 
+         mProgress = new ProgressDialog(this);
+-        mLoader = new LoadImage(MainActivity.this, mProgress);
++        mLoadBigImage = (CheckBox) findViewById(R.id.load_big);
++        setLoadBigImageClickListener();
++
++        if (mSoftLoader == null) {
++            createWeakLoader();
+-    }
++        }
++    }
+ 
++    private void setLoadBigImageClickListener() {
++        mLoadBigImage.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+-    @Override
++            @Override
++            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
++                mLoadedImage.setImageBitmap(null);
++                createWeakLoader();
++            }
++        });
++    }
++
++    @Override
+     protected void onResume() {
++        Log.v(TAG, "Method: onResume()");
+         super.onResume();
+         if (mProgress.isShowing()) {
+             mProgress.show();
+@@ -47,22 +67,51 @@
+ 
+     @Override
+     protected void onPause() {
++        Log.v(TAG, "Method: onPause()");
+         super.onPause();
+         if (mProgress.isShowing()) {
+             mProgress.dismiss();
+         }
++        if (!mSoftLoader.equals(null)) {
++            mSoftLoader.get().cancel(true);
++            Log.v(TAG, "AsyncTask is canceled");
+-    }
++        }
++    }
+ 
++    @Override
++    protected void onDestroy(){
++        Log.v(TAG, "Method: onDestroy()");
++        super.onDestroy();
++    }
++
+     private void setLoadOnClickListener() {
+         Log.v(TAG, "Method: setLoadOnClickListener()");
+         mLoad.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View v) {
+-                if (!mLoader.getStatus().equals(AsyncTask.Status.FINISHED)) {
+-                    mLoader.execute(getResources().getString(R.string.url));
+-                } else {
++                String url = mLoadBigImage.isChecked() ?
++                        getResources().getString(R.string.big_image_url) :
++                        getResources().getString(R.string.small_image_url);
++                try {
++                    if (mSoftLoader == null) {
++                        Log.v(TAG, "Loader is null, recreating loader");
++                        createWeakLoader();
++                        if (!mSoftLoader.get().getStatus().equals(AsyncTask.Status.FINISHED)) {
++                            Log.v(TAG, "Loading image was not finished, start loading..");
++                            mSoftLoader.get().execute(url);
++                        } else if (mSoftLoader.get().getStatus().equals(AsyncTask.Status.FINISHED)) {
++                            onLoadCompletedToast();
++                        }
++                    } else if (!mSoftLoader.get().getStatus().equals(AsyncTask.Status.FINISHED)) {
++                        Log.v(TAG, "Loader is not null, start loading..");
++                        mSoftLoader.get().execute(url);
++                    } else if (mSoftLoader.get().getStatus().equals(AsyncTask.Status.FINISHED)) {
++                        onLoadCompletedToast();
++                    }
++                } catch (NullPointerException e) {
++                    createWeakLoader();
+                     Toast.makeText(MainActivity.this,
+-                            getResources().getString(R.string.successful_text),
++                            getResources().getString(R.string.retry),
+                             Toast.LENGTH_SHORT)
+                             .show();
+                 }
+@@ -78,10 +127,33 @@
+             mProgress.dismiss();
+         } else {
+             mProgress.dismiss();
++            if (mSoftLoader.get().getLoadedState()) {
+-            Toast.makeText(this,
++                Toast.makeText(this,
++                        getResources().getString(R.string.too_big),
++                        Toast.LENGTH_SHORT)
++                        .show();
++            } else {
++                Toast.makeText(this,
+-                    getResources().getString(R.string.loading_error),
+-                    Toast.LENGTH_SHORT)
+-                    .show();
+-        }
++                        getResources().getString(R.string.loading_error),
++                        Toast.LENGTH_SHORT)
++                        .show();
++            }
++
++        }
++    }
++
++    private void createWeakLoader() {
++        Log.v(TAG, "Method: createWeakLoader()");
++        LoadImage loader = new LoadImage(MainActivity.this, mProgress);
++        mSoftLoader = new WeakReference<>(loader);
++        loader = null;
++    }
++
++    private void onLoadCompletedToast() {
++        Log.v(TAG, "Loading image was finished, don't need to load again");
++        Toast.makeText(MainActivity.this,
++                getResources().getString(R.string.successful_text),
++                Toast.LENGTH_SHORT)
++                .show();
+     }
+ }
+Index: app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/LoadImage.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/LoadImage.java	(date 1463488692000)
++++ app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/LoadImage.java	(revision )
+@@ -13,10 +13,13 @@
+ public class LoadImage extends AsyncTask<String, String, Bitmap> {
+ 
+     private static final String TAG = LoadImage.class.getSimpleName();
++    private static final int TOO_BIG = 400 * 400;
+ 
+     private ProgressDialog mProgress;
+     private MainActivity mActivity;
+ 
++    private boolean mDoneWithoutExceptions = false;
++
+     public LoadImage(MainActivity activity, ProgressDialog progressDialog) {
+         mActivity = activity;
+         mProgress = progressDialog;
+@@ -33,16 +36,32 @@
+     @Override
+     protected Bitmap doInBackground(String... params) {
+         Log.v(TAG, "Method: doInBackground()");
+-        Bitmap mBitmap = null;
++        Bitmap bitmap = null;
++        final BitmapFactory.Options options = new BitmapFactory.Options();
++        options.inJustDecodeBounds = true;
+         try {
+-            mBitmap = BitmapFactory.decodeStream((InputStream) new URL(params[0]).getContent());
++            bitmap = BitmapFactory.decodeStream(
++                    (InputStream) new URL(params[0]).getContent(), null, options);
++            if (options.outHeight * options.outWidth >= TOO_BIG) {
++                Log.v(TAG, "Image is too big");
++                mDoneWithoutExceptions = true;
++                return null;
++            } else {
++                options.inJustDecodeBounds = false;
++                bitmap = BitmapFactory.decodeStream((InputStream) new URL(params[0]).getContent());
++            }
++            mDoneWithoutExceptions = true;
+         } catch (IOException e) {
+-            // Just ignore exception
++            mDoneWithoutExceptions = false;
+         }
+-        return mBitmap;
++        return bitmap;
+     }
+ 
+     public void onPostExecute(Bitmap image) {
+         mActivity.onPostExecute(image);
++    }
++
++    public boolean getLoadedState() {
++        return mDoneWithoutExceptions;
+     }
+ }
+\ No newline at end of file
+Index: app/src/main/res/values/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/strings.xml	(date 1463488692000)
++++ app/src/main/res/values/strings.xml	(revision )
+@@ -1,12 +1,18 @@
+ <resources>
+     <string name="app_name">Задание № 5</string>
+     <string name="load">Load</string>
+-    <string name="ulr_text">Картинка из интернета\nurl: http://gospelgeeks.net/wp-content/uploads/2013/04/jesus-02.jpg</string>
+-    <string name="url">http://gospelgeeks.net/wp-content/uploads/2013/04/jesus-02.jpg</string>
++    <string name="ulr_text">Картинка из интернета\</string>
+ 
++    <string name="small_image_url">https://www.ngdc.noaa.gov/mgg/image/2minsurface/64/45S135W.jpg</string>
++    <string name="big_image_url">http://www.gettyimages.pt/gi-resources/images/Homepage/Hero/PT/PT_hero_42_153645159.jpg</string>
++
+     <string name="progress_message">Loading Image…</string>
+-    <string name="loading_error">Image does not exist or Network error</string>
++    <string name="loading_error">Картинка не существует или проблемы с сетью</string>
++    <string name="too_big">Не могу загрузить картинку, она слишком большая :(</string>
+ 
+     <string name="successful_text">Картинка уже загружена</string>
++    <string name="retry">Проблемы с загрузкой, попробуйте еще раз</string>
++
++    <string name="load_big">Загрузить большую картинку?</string>
+ 
+ </resources>

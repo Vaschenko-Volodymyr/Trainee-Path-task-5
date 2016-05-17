@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,28 +8,41 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.traineepath.volodymyrvashchenko.trainee_path_task_5.MainActivity"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:layout_weight="10">
 
     <TextView
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_gravity="center_horizontal|top"
         android:text="@string/ulr_text"
         android:gravity="center"
-        android:padding="4dip"/>
+        android:padding="4dip"
+        android:layout_weight="1"/>
 
-    <Button
-        android:id="@+id/load"
+    <CheckBox
+        android:id="@+id/load_big"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/load"
-        android:layout_gravity="center_horizontal|bottom"
-        android:background="@drawable/button_selector"
-        android:textColor="@color/white"/>
+        android:layout_height="0dp"
+        android:text="@string/load_big"
+        android:layout_weight="1"
+        android:layout_gravity="center"/>
 
     <ImageView
         android:id="@+id/loaded_image"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="center" />
-</FrameLayout>
+        android:layout_height="0dp"
+        android:layout_gravity="center"
+        android:layout_weight="7"/>
+
+    <Button
+        android:id="@+id/load"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:text="@string/load"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/button_selector"
+        android:textColor="@color/white"
+        android:layout_weight="1"/>
+
+</LinearLayout>
