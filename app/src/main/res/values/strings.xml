@@ -8,9 +8,9 @@
 
     <string name="progress_message">Loading Image…</string>
     <string name="loading_error">Картинка не существует или проблемы с сетью</string>
-    <string name="too_big">Не могу загрузить картинку, она слишком большая :(</string>
+    <string name="loading_success">Картинка успешно загружена</string>
 
-    <string name="successful_text">Картинка уже загружена</string>
+    <string name="already_loaded">Картинка уже загружена</string>
     <string name="retry">Проблемы с загрузкой, попробуйте еще раз</string>
 
     <string name="load_big">Загрузить большую картинку?</string>

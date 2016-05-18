@@ -1,0 +1,332 @@
+Index: app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/MainActivity.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/MainActivity.java	(date 1463506125000)
++++ app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/MainActivity.java	(revision )
+@@ -25,7 +25,7 @@
+ 
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+-        Log.v(TAG, "Method: onCreate()");
++        Log.v(TAG, ">> Method: onCreate()");
+ 
+         super.onCreate(savedInstanceState);
+         setContentView(R.layout.activity_main);
+@@ -38,62 +38,100 @@
+         mLoadBigImage = (CheckBox) findViewById(R.id.load_big);
+         setLoadBigImageClickListener();
+ 
+-        mLoader = new LoadImage(MainActivity.this,
+-                mProgress,
+-                mLoadedImage.getHeight(),
+-                mLoadBigImage.getWidth());
++        createLoader();
++        Log.v(TAG, "<< Method: onCreate()");
+     }
+ 
+-    private void setLoadBigImageClickListener() {
+-        mLoadBigImage.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+-            @Override
++    @Override
+-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+-                mLoadedImage.setImageBitmap(null);
+-            }
+-        });
+-    }
+-
+-    @Override
+     protected void onResume() {
+-        Log.v(TAG, "Method: onResume()");
++        Log.v(TAG, ">> Method: onResume()");
+         super.onResume();
+-        if (mProgress.isShowing()) {
+-            mProgress.show();
++        Log.v(TAG, "<< Method: onResume()");
+-        }
++    }
+-    }
+ 
+     @Override
+     protected void onPause() {
+-        Log.v(TAG, "Method: onPause()");
++        Log.v(TAG, ">> Method: onPause()");
+         super.onPause();
+         if (mProgress.isShowing()) {
+             mProgress.dismiss();
+         }
+-        mLoader.cancel(true);
+-        Log.v(TAG, "AsyncTask is canceled");
++        if (mLoader.getStatus().equals(AsyncTask.Status.RUNNING)) {
++            synchronized (this) {
++                mLoader.stop();
++                Log.v(TAG, "Method: onPause(), thread is alive - " + mLoader.isStopped());
++                createLoader();
++                mLoad.callOnClick();
+-    }
++            }
++        } else {
++            synchronized (this) {
++                mLoader.stop();
++                Log.v(TAG, "Method: onPause(), thread is alive - " + mLoader.isStopped());
++            }
++        }
++        Log.v(TAG, "<< Method: onPause()");
++    }
+ 
+     @Override
+-    protected void onDestroy() {
+-        Log.v(TAG, "Method: onDestroy()");
+-        super.onDestroy();
++    public void onPostExecute(Bitmap bitmap) {
++        Log.v(TAG, ">> Method: onPostExecute()");
++        if (mLoader.isStopped()) return;
++        if (bitmap != null) {
++            try {
++                mProgress.dismiss();
++            } catch (IllegalArgumentException e) {
++                //Just ignore
+-    }
++            }
++            mLoadedImage.setImageBitmap(bitmap);
++            if (mLoader.getLoadedState()) {
++                Toast.makeText(this,
++                        getResources().getString(R.string.loading_success),
++                        Toast.LENGTH_SHORT)
++                        .show();
++            } else {
++                Toast.makeText(this,
++                        getResources().getString(R.string.loading_error),
++                        Toast.LENGTH_SHORT)
++                        .show();
++            }
++        } else {
++            mProgress.dismiss();
+ 
++        }
++        Log.v(TAG, "<< Method: onPostExecute()");
++    }
++
++    private void createLoader() {
++        mLoader = new LoadImage(MainActivity.this, mLoadedImage.getHeight(), mLoadBigImage.getWidth());
++    }
++
++    private void setLoadBigImageClickListener() {
++        mLoadBigImage.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
++            @Override
++            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
++                createLoader();
++                mLoadedImage.setImageBitmap(null);
++            }
++        });
++    }
++
+     private void setLoadOnClickListener() {
+-        Log.v(TAG, "Method: setLoadOnClickListener()");
++        Log.v(TAG, ">> Method: setLoadOnClickListener()");
+         mLoad.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View v) {
++                mProgress.setMessage(getResources().getString(R.string.progress_message));
++                mProgress.show();
+                 String url = mLoadBigImage.isChecked() ?
+                         getResources().getString(R.string.big_image_url) :
+                         getResources().getString(R.string.small_image_url);
+                 try {
+-                        if (!mLoader.getStatus().equals(AsyncTask.Status.FINISHED)) {
+-                            Log.v(TAG, "Loading image was not finished, start loading..");
+-                            mLoader.execute(url);
+-                        } else {
+-                            onLoadCompletedToast();
+-                        }
++                    if (!mLoader.getStatus().equals(AsyncTask.Status.FINISHED)) {
++                        Log.v(TAG, "Loading image was not finished, start loading..");
++                        mLoader.execute(url);
++                    } else {
++                        onLoadCompletedToast();
++                    }
+                 } catch (NullPointerException e) {
+                     Toast.makeText(MainActivity.this,
+                             getResources().getString(R.string.retry),
+@@ -102,35 +140,14 @@
+                 }
+             }
+         });
++        Log.v(TAG, "<< Method: setLoadOnClickListener()");
+     }
+ 
+-    @Override
+-    public void onPostExecute(Bitmap bitmap) {
+-        Log.v(TAG, "Method: onPostExecute()");
+-        if (bitmap != null) {
+-            mLoadedImage.setImageBitmap(bitmap);
+-            mProgress.dismiss();
+-        } else {
+-            mProgress.dismiss();
+-            if (mLoader.getLoadedState()) {
+-                Toast.makeText(this,
+-                        getResources().getString(R.string.too_big),
+-                        Toast.LENGTH_SHORT)
+-                        .show();
+-            } else {
+-                Toast.makeText(this,
+-                        getResources().getString(R.string.loading_error),
+-                        Toast.LENGTH_SHORT)
+-                        .show();
+-            }
+-
+-        }
+-    }
+-
+     private void onLoadCompletedToast() {
+         Log.v(TAG, "Loading image was finished, don't need to load again");
++        mProgress.dismiss();
+         Toast.makeText(MainActivity.this,
+-                getResources().getString(R.string.successful_text),
++                getResources().getString(R.string.already_loaded),
+                 Toast.LENGTH_SHORT)
+                 .show();
+     }
+Index: app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/LoadImage.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/LoadImage.java	(date 1463506125000)
++++ app/src/main/java/com/traineepath/volodymyrvashchenko/trainee_path_task_5/LoadImage.java	(revision )
+@@ -14,58 +14,63 @@
+ 
+     private static final String TAG = LoadImage.class.getSimpleName();
+ 
+-    private ProgressDialog mProgress;
++    private volatile boolean mIsStopped = false;
++
+     private MainActivity mActivity;
+     private int mMaxHeight;
+     private int mMaxWidth;
+-
+     private boolean mDoneWithoutExceptions = false;
+ 
+-    public LoadImage(MainActivity activity, ProgressDialog progressDialog, int maxHeight, int maxWidth) {
++    public LoadImage(MainActivity activity,
++                     int maxHeight, int maxWidth) {
+         mActivity = activity;
+-        mProgress = progressDialog;
+         mMaxHeight = maxHeight;
+         mMaxWidth = maxWidth;
+     }
+ 
+     @Override
+     protected void onPreExecute() {
+-        Log.v(TAG, "Method: onPreExecute()");
++        Log.v(TAG, ">> Method: onPreExecute()");
+         super.onPreExecute();
+-        mProgress.setMessage(mActivity.getResources().getString(R.string.progress_message));
+-        mProgress.show();
++        Log.v(TAG, "<< Method: onPreExecute()");
+     }
+ 
+     @Override
+     protected Bitmap doInBackground(String... params) {
+-        Log.v(TAG, "Method: doInBackground()");
+-        Bitmap bitmap = null;
+-        final BitmapFactory.Options options = new BitmapFactory.Options();
+-        options.inJustDecodeBounds = true;
+-        try {
+-            bitmap = BitmapFactory.decodeStream(
+-                    (InputStream) new URL(params[0]).getContent(), null, options);
+-            if (options.outHeight * options.outWidth >= mMaxHeight * mMaxWidth) {
+-                Log.v(TAG, "Image is too big");
+-                return decodeSampledBitmapFromUrl(params[0], mMaxHeight, mMaxWidth);
+-            } else {
+-                options.inJustDecodeBounds = false;
+-                bitmap = BitmapFactory.decodeStream((InputStream) new URL(params[0]).getContent());
++        Log.v(TAG, ">> Method: doInBackground()");
++        Bitmap bitmap = decodeSampledBitmapFromUrl(params[0], mMaxHeight, mMaxWidth);
++        Log.v(TAG, "<< Method: doInBackground()");
++        return bitmap;
+-            }
++    }
+-            mDoneWithoutExceptions = true;
+-        } catch (IOException e) {
+-            mDoneWithoutExceptions = false;
++
++    @Override
++    protected void onPostExecute(Bitmap image) {
++        synchronized (this) {
++            if (isStopped()) return;
++            Log.v(TAG, "thread is stopped - " + mIsStopped);
++            mActivity.onPostExecute(image);
+         }
+-        return bitmap;
+     }
+ 
++    public boolean getLoadedState() {
++        return mDoneWithoutExceptions;
++    }
++
++    public synchronized void stop() {
++        mIsStopped = true;
++    }
++
++    public synchronized boolean isStopped() {
++        return mIsStopped;
++    }
++
+     private int calculateInSampleSize(
+             BitmapFactory.Options options, int reqWidth, int reqHeight) {
+         final int height = options.outHeight;
+         final int width = options.outWidth;
+         int inSampleSize = 1;
+ 
+-        if (height > reqHeight || width > reqWidth) {
++        if (height > reqHeight && width > reqWidth) {
+ 
+             final int halfHeight = height / 2;
+             final int halfWidth = width / 2;
+@@ -90,20 +95,14 @@
+         }
+ 
+         options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+-
+         options.inJustDecodeBounds = false;
++
+         try {
+-            return BitmapFactory.decodeStream((InputStream) new URL(ulr).getContent());
++            mDoneWithoutExceptions = true;
++            return BitmapFactory.decodeStream((InputStream) new URL(ulr).getContent(), null, options);
+         } catch (IOException e) {
++            mDoneWithoutExceptions = false;
+             return null;
+         }
+-    }
+-
+-    public void onPostExecute(Bitmap image) {
+-        mActivity.onPostExecute(image);
+-    }
+-
+-    public boolean getLoadedState() {
+-        return mDoneWithoutExceptions;
+     }
+ }
+\ No newline at end of file
+Index: app/src/main/res/values/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/strings.xml	(date 1463506125000)
++++ app/src/main/res/values/strings.xml	(revision )
+@@ -8,9 +8,9 @@
+ 
+     <string name="progress_message">Loading Image…</string>
+     <string name="loading_error">Картинка не существует или проблемы с сетью</string>
+-    <string name="too_big">Не могу загрузить картинку, она слишком большая :(</string>
++    <string name="loading_success">Картинка успешно загружена</string>
+ 
+-    <string name="successful_text">Картинка уже загружена</string>
++    <string name="already_loaded">Картинка уже загружена</string>
+     <string name="retry">Проблемы с загрузкой, попробуйте еще раз</string>
+ 
+     <string name="load_big">Загрузить большую картинку?</string>
